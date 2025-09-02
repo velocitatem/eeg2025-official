@@ -22,11 +22,15 @@ This repository contains start kits for the [EEG Foundation challenges](https://
 
 ## 📁 Repository Structure
 
+### Main Files
+
 - **`challenge_1.ipynb`** - Complete tutorial for Challenge 1: Cross-task transfer learning
   - Understanding the Contrast Change Detection (CCD) task
   - Loading and preprocessing EEG data using EEGDash
   - Building deep learning models with Braindecode
   - Training and evaluation pipeline
+
+- **`challenge_1.py`** - Python script version of Challenge 1 notebook for easier integration
 
 - **`challenge_2.ipynb`** - Tutorial for Challenge 2: P-factor regression
   - Understanding the P-factor regression task
@@ -35,16 +39,19 @@ This repository contains start kits for the [EEG Foundation challenges](https://
 
 - **`challenge_2.py`** - Python script version of Challenge 2 notebook for easier integration
 
-- **`challenge_2_self_supervised.ipynb`** - Advanced self-supervised learning approach
-  - Implementing Relative Positioning (RP) for unsupervised representation learning
-  - Fine-tuning for P-factor prediction
-  - PyTorch Lightning integration
-
 - **`submission.py`** - Template for competition submission
   - Shows required format for model submission
   - Includes examples for both challenges
 
 - **`requirements.txt`** - Python dependencies needed to run the notebooks
+
+### Advanced Examples (not_ready_yet/)
+
+- **`challenge_2_self_supervised.ipynb`** - Advanced self-supervised learning approach
+  - Implementing Relative Positioning (RP) for unsupervised representation learning
+  - Fine-tuning for P-factor prediction
+  - PyTorch Lightning integration
+  - *Note: This is an advanced example that may require additional setup*
 
 ## 🛠️ Installation
 
