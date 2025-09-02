@@ -1,7 +1,7 @@
 # ##########################################################################
 # # Example of submission files
 # # ---------------------------
-# the zip file needs to single level depth!
+# The zip file needs to be single level depth!
 # NO FOLDER
 # my_submission.zip
 # ├─ submission.py

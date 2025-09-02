@@ -5,7 +5,7 @@
 # # Challenge 2: Predicting the p-factor from EEG
 
 # The psychopathology factor (P-factor) is a widely recognized construct in mental health research, representing a common underlying dimension of psychopathology across various disorders.
-# Currently, the P-factor is often assessed using self-report questionnaires or clinician ratings, which can be subjective, prone to bias, and time consuming.
+# Currently, the P-factor is often assessed using self-report questionnaires or clinician ratings, which can be subjective, prone to bias, and time-consuming.
 # **The Challenge 2** consists of developing a model to predict the P-factor from EEG recordings.
 
 # The challenge encourages learning physiologically meaningful signal representations and discovery of reproducible biomarkers.
@@ -39,9 +39,9 @@
 
 # This is a community competition with a strong open-source foundation. When I say open-source, I mean volunteer work.
 
-# So, if you see something that does not work or could be improved, first, **please be kind**, and we will fix it together on github, okay?
+# So, if you see something that does not work or could be improved, first, **please be kind**, and we will fix it together on GitHub, okay?
 
-# The entire decoding community will only go further when we stopped solving the same problems over and over again, and it starts working together.
+# The entire decoding community will only go further when we stop solving the same problems over and over again, and start working together.
 
 # %% [markdown]
 # ----
@@ -52,7 +52,7 @@
 # |* Overfitting, early stopping, regularisation |
 # |* Some knowledge of pytorch and, optionally, of the pytorch Lightning framework|
 # |* That you know what EEG is |
-# |* that you have basic familiarity with EEG preprocessing |
+# |* That you have basic familiarity with EEG preprocessing |
 # |* Like and support open-source :) |
 # ----
 
@@ -100,7 +100,7 @@ print(msg)
 #
 # The psychopathology factor (P-factor) is a widely recognized construct in mental health research, representing a common underlying dimension of psychopathology across various disorders.
 # The P-factor is thought to reflect the shared variance among different psychiatric conditions, suggesting that individuals with higher P-factor scores may be more vulnerable to a range of mental health issues.
-# Currently, the P-factor is often assessed using self-report questionnaires or clinician ratings, which can be subjective, prone to bias, and time consuming.
+# Currently, the P-factor is often assessed using self-report questionnaires or clinician ratings, which can be subjective, prone to bias, and time-consuming.
 # In the dataset of this challenge, the P-factor was assessed using the Child Behavior Checklist (CBCL) [McElroy et al., (2017)](https://doi.org/10.1111/jcpp.12849).
 
 # The goal of Challenge 2 is to develop a model to predict the P-factor from EEG recordings.
@@ -116,10 +116,10 @@ print(msg)
 
 # In this challenge 2 example, we load the EEG 2025 release using EEG Dash.
 
-# > **Note:** in this example notebook, we load the contrast change detection task from one mini release only as example. Naturally, you are encouraged to train your models on all complete releases, using data from all the tasks you deem relevant.
+# > **Note:** in this example notebook, we load the contrast change detection task from one mini release only as an example. Naturally, you are encouraged to train your models on all complete releases, using data from all the tasks you deem relevant.
 
 # %%
-# The first step is define the cache folder!
+# The first step is to define the cache folder!
 DATA_DIR = Path("data")
 
 # Creating the path if it does not exist
@@ -152,7 +152,7 @@ print("Datasets loaded")
 sub_rm = ["NDARWV769JM7"]
 
 # %% [markdown]
-# ### B. Combine the datasets into single one
+# ### B. Combine the datasets into a single one
 
 # Here, we combine the datasets from the different releases into a single
 # ``BaseConcatDataset`` object.
@@ -173,7 +173,7 @@ raws = Parallel(n_jobs=os.cpu_count())(
 #
 # The following snippet, if uncommented, will show the first 10 seconds of the raw EEG signal.
 # We can also inspect the data further by looking at the events and annotations.
-# We strong recommend you to take a look into the details and check how the events are structured.
+# We strongly recommend you to take a look into the details and check how the events are structured.
 
 # %%
 # raw = all_datasets.datasets[0].raw  # mne.io.Raw object
@@ -210,7 +210,7 @@ class DatasetWrapper(BaseDataset):
         p_factor = self.dataset.description["p_factor"]
         p_factor = float(p_factor)
 
-        # Addtional information:
+        # Additional information:
         infos = {
             "subject": self.dataset.description["subject"],
             "sex": self.dataset.description["sex"],
