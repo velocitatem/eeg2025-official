@@ -1,6 +1,8 @@
 # ##########################################################################
 # # Example of submission files
 # # ---------------------------
+# the zip file needs to single level depth!
+# NO FOLDER
 # my_submission.zip
 # ├─ submission.py
 # ├─ weights_challenge_1.pt

@@ -1,8 +1,5 @@
-git+https://github.com/sccn/eegdash.git
-git+https://github.com/braindecode/braindecode.git
+eegdash
+braindecode
 jupyter
 lightning
-mne
-mne-bids
-scipy
-pymatreader
+ipykernel
