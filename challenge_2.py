@@ -1,4 +1,7 @@
 # %% [markdown]
+# <a target="_blank" href="https://colab.research.google.com/github/eeg2025/startkit/blob/main/challenge_2.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+# %% [markdown]
 # # Challenge 2: Predicting the p-factor from EEG
 
 # The psychopathology factor (P-factor) is a widely recognized construct in mental health research, representing a common underlying dimension of psychopathology across various disorders.
