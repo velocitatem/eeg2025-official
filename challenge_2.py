@@ -1,63 +1,136 @@
-""".. _challenge_2:
+# %% [markdown]
+# # Challenge 2: Predicting the p-factor from EEG
 
-Challenge 2: Predicting the p-factor from EEG
-=============================================
+# The psychopathology factor (P-factor) is a widely recognized construct in mental health research, representing a common underlying dimension of psychopathology across various disorders.
+# Currently, the P-factor is often assessed using self-report questionnaires or clinician ratings, which can be subjective, prone to bias, and time consuming.
+# **The Challenge 2** consists of developing a model to predict the P-factor from EEG recordings.
 
-This tutorial presents Challenge 2: regression of the p-factor (a general psychopathology factor) from EEG recordings.
-The objective is to identify reproducible EEG biomarkers linked to mental health outcomes.
+# The challenge encourages learning physiologically meaningful signal representations and discovery of reproducible biomarkers.
+# Models of any size should emphasize robust, interpretable features that generalize across subjects,
+# sessions, and acquisition sites.
 
-The challenge encourages learning physiologically meaningful signal representations.
-Models of any size should emphasize robust, interpretable features that generalize across subjects,
-sessions, and acquisition sites.
+# Unlike a standard in-distribution classification task, this regression problem stresses out-of-distribution robustness
+# and extrapolation. The goal is not only to minimize error on seen subjects, but also to transfer effectively to unseen data.
 
-Unlike a standard in-distribution classification task, this regression problem stresses out-of-distribution robustness
-and extrapolation. The goal is not only to minimize error on seen subjects, but also to transfer effectively to unseen data.
+# Ensure the dataset is available locally. If not, see the [dataset download guide](https://eeg2025.github.io/data/#downloading-the-data)
 
-Ensure the dataset is available locally. If not, see the [dataset download guide](https://eeg2025.github.io/data/#downloading-the-data)
+# %% [markdown]
+# ## Contents of this start kit
 
-This tutorial is divided as follows:
-1. **Loading the data**
-2. **Wrap the data into a PyTorch-compatible dataset**
-3. **Define, train and save a model**
-"""
+# 0. Understand the P-factor regression task.
+# 1. Loading the data.
+# 2. Wrap the data into a PyTorch-compatible dataset.
+# 3. Define, train and save a model.
 
-######################################################################
-# Loading the data
-# ----------------
-#
+# > **Note:** If you need additional explanations on the [`EEGChallengeDataset`](https://eeglab.org/EEGDash/api/eegdash.html#eegdash.EEGChallengeDataset) class, dataloading, [`braindecode`](https://braindecode.org/stable/models/models_table.html)'s deep learning models, or brain decoding in general, please refer to the start-kit of challenge 1 which delves deeper into these topics.
+
+# More contents will be released during the competition inside the [`eegdash`](https://eeglab.org/EEGDash/overview.html) [examples webpage](https://eeglab.org/EEGDash/generated/auto_examples/index.html).
+
+# We will establish direct communication channels with you over the next two months, resolve platform issues, and discuss other details.
+
+# We are going to do weekly one-hour support time to help teams that may have difficulties with any technical aspects that may arise.
+
+# We will have closer communication starting next week, 08/09/2025.
+
+# Before we begin, I just want to make a deal with you, ok?
+
+# This is a community competition with a strong open-source foundation. When I say open-source, I mean volunteer work.
+
+# So, if you see something that does not work or could be improved, first, **please be kind**, and we will fix it together on github, okay?
+
+# The entire decoding community will only go further when we stopped solving the same problems over and over again, and it starts working together.
+
+# %% [markdown]
+# ----
+# | The tutorial assumes some prior knowledge of deep learning concepts and EEG concepts:|
+# | --- |
+# |* Standard neural network architectures, e.g., convolutional neural networks|
+# |* Optimization by batch gradient descent and backpropagation|
+# |* Overfitting, early stopping, regularisation |
+# |* Some knowledge of pytorch and, optionally, of the pytorch Lightning framework|
+# |* That you know what EEG is |
+# |* that you have basic familiarity with EEG preprocessing |
+# |* Like and support open-source :) |
+# ----
+
+# %% Install dependencies on colab [code] tags=["hide-input"]
+!pip install braindecode
+!pip install eegdash
+
+# %% Imports [code] tags=["hide-input"]
+from pathlib import Path
 import math
-
 import os
 import random
 from joblib import Parallel, delayed
-from pathlib import Path
-from eegdash import EEGChallengeDataset
+
+import torch
+from torch.utils.data import DataLoader
+from torch import optim
+from torch.nn.functional import l1_loss
 from braindecode.preprocessing import create_fixed_length_windows
 from braindecode.datasets.base import EEGWindowsDataset, BaseConcatDataset, BaseDataset
+from braindecode.models import EEGNetv4
+from eegdash import EEGChallengeDataset
+
+# %% [markdown]
+# ⚠️ **In case of colab, before starting, make sure you're on a GPU instance for faster training!** ⚠️
+
+# > If running on Google Colab, please request a GPU runtime by clicking `Runtime/Change runtime type` in the top bar menu, then selecting 'T4 GPU' under 'Hardware accelerator'.
 
 
-######################################################################
-# Define local path and (down)load the data
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% Identify whether a CUDA-enabled GPU is available [code] tags=["hide-input"]
+device = "cuda" if torch.cuda.is_available() else "cpu"
+if device == "cuda":
+    msg = "CUDA-enabled GPU found. Training should be faster."
+else:
+    msg = (
+        "No GPU found. Training will be carried out on CPU, which might be "
+        "slower.\n\nIf running on Google Colab, you can request a GPU runtime by"
+        " clicking\n`Runtime/Change runtime type` in the top bar menu, then "
+        "selecting 'T4 GPU'\nunder 'Hardware accelerator'."
+    )
+print(msg)
+
+# %% [markdown]
+# ## 0. Understanding the P-factor regression task.
 #
-# In this challenge 2 example, we load the EEG 2025 release using EEG Dash and Braindecode,
-# we load all the public datasets available in the EEG 2025 release.
+# The psychopathology factor (P-factor) is a widely recognized construct in mental health research, representing a common underlying dimension of psychopathology across various disorders.
+# The P-factor is thought to reflect the shared variance among different psychiatric conditions, suggesting that individuals with higher P-factor scores may be more vulnerable to a range of mental health issues.
+# Currently, the P-factor is often assessed using self-report questionnaires or clinician ratings, which can be subjective, prone to bias, and time consuming.
+# In the dataset of this challenge, the P-factor was assessed using the Child Behavior Checklist (CBCL) [McElroy et al., (2017)](https://doi.org/10.1111/jcpp.12849).
 
+# The goal of Challenge 2 is to develop a model to predict the P-factor from EEG recordings.
+# **The feasibility of using EEG data for this purpose is still an open question**.
+# The solution may involve finding meaningful representations of the EEG data that correlate with the P-factor scores.
+# The challenge encourages learning physiologically meaningful signal representations and discovery of reproducible biomarkers.
+# If contestants are successful in this task, it could pave the way for more objective and efficient assessments of the P-factor in clinical settings.
+
+# %% [markdown]
+# ## 1. Loading the data
+
+# ### A. Define local path and (down)load the data
+
+# In this challenge 2 example, we load the EEG 2025 release using EEG Dash.
+
+# > **Note:** in this example notebook, we load the contrast change detection task from one mini release only as example. Naturally, you are encouraged to train your models on all complete releases, using data from all the tasks you deem relevant.
+
+# %%
 # The first step is define the cache folder!
-cache_dir = Path("D:\eegdash_data\eeg2025_competition").expanduser()
+DATA_DIR = Path("data")
 
 # Creating the path if it does not exist
-cache_dir.mkdir(parents=True, exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # We define the list of releases to load.
-# Here, all releases are loaded, i.e., 1 to 11.
-release_list = ["R{}".format(i) for i in range(1, 11 + 1)]
+# Here, only release 5 is loaded.
+release_list = ["R5"]
 
-# For this tutorial, we will only load the "resting state" recording,
-# but you may use all available data.
 all_datasets_list = [
     EEGChallengeDataset(
         release=release,
+        task="contrastChangeDetection",
+        mini=True,
         description_fields=[
             "subject",
             "session",
@@ -68,20 +141,20 @@ all_datasets_list = [
             "sex",
             "p_factor",
         ],
-        mini=True,
-        cache_dir=cache_dir,
+        cache_dir=DATA_DIR,
     )
     for release in release_list
 ]
 print("Datasets loaded")
 sub_rm = ["NDARWV769JM7"]
 
-######################################################################
-# Combine the datasets into single one
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+# ### B. Combine the datasets into single one
+
 # Here, we combine the datasets from the different releases into a single
 # ``BaseConcatDataset`` object.
 
+# %%
 all_datasets = BaseConcatDataset(all_datasets_list)
 print(all_datasets.description)
 
@@ -89,9 +162,9 @@ raws = Parallel(n_jobs=os.cpu_count())(
     delayed(lambda d: d.raw)(d) for d in all_datasets.datasets
 )
 
-######################################################################
-# Inspect your data
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+# ### C. Inspect your data
+
 # We can check what is inside the dataset consuming the
 # MNE-object inside the Braindecode dataset.
 #
@@ -99,7 +172,7 @@ raws = Parallel(n_jobs=os.cpu_count())(
 # We can also inspect the data further by looking at the events and annotations.
 # We strong recommend you to take a look into the details and check how the events are structured.
 
-
+# %%
 # raw = all_datasets.datasets[0].raw  # mne.io.Raw object
 # print(raw.info)
 
@@ -109,15 +182,15 @@ raws = Parallel(n_jobs=os.cpu_count())(
 
 SFREQ = 100
 
-######################################################################
-# Wrap the data into a PyTorch-compatible dataset
-# ---------------------------------------------------------
-#
+# %% [markdown]
+# ## 2. Wrap the data into a PyTorch-compatible dataset
+
 # The class below defines a dataset wrapper that will extract 2-second windows,
 # uniformly sampled over the whole signal. In addition, it will add useful information
 # about the extracted windows, such as the p-factor, the subject or the task.
 
 
+# %%
 class DatasetWrapper(BaseDataset):
     def __init__(self, dataset: EEGWindowsDataset, crop_size_samples: int, seed=None):
         self.dataset = dataset
@@ -155,10 +228,19 @@ class DatasetWrapper(BaseDataset):
         return X, p_factor, (i_window_in_trial, i_start, i_stop), infos
 
 
+# %% [markdown]
+# We filter out certain recordings, create fixed length windows and finally make use of our `DatasetWrapper`.
+
+# %%
 # Filter out recordings that are too short
 all_datasets = BaseConcatDataset(
-    [ds for ds in all_datasets.datasets 
-     if not ds.description.subject in sub_rm and ds.raw.n_times >= 4 * SFREQ and not math.isnan(ds.description["p_factor"] )]
+    [
+        ds
+        for ds in all_datasets.datasets
+        if not ds.description.subject in sub_rm
+        and ds.raw.n_times >= 4 * SFREQ
+        and not math.isnan(ds.description["p_factor"])
+    ]
 )
 
 # Create 4-seconds windows with 2-seconds stride
@@ -175,40 +257,39 @@ windows_ds = BaseConcatDataset(
 )
 
 
-######################################################################
-# Define, train and save a model
-# ------------------------
+# %% [markdown]
+# ## 3. Define, train and save a model
+
 # Now we have our pytorch dataset necessary for the training!
 #
-# Below, we define a simple EEGNetv4 model from Braindecode and train it for one epoch
-# using pure PyTorch code.
-# However, you can use any pytorch model you want, or training framework.
-import torch
-from torch.utils.data import DataLoader
-from torch import optim
-from torch.nn.functional import l1_loss
-from braindecode.models import EEGNetv4
-
-# Use GPU if available
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Create PyTorch Dataloader
-dataloader = DataLoader(windows_ds, batch_size=10, shuffle=True)
-
-# Initialize model
-model = EEGNetv4(n_chans=129, n_outputs=1, n_times=2 * SFREQ).to(DEVICE)
-
+# Below, we define a simple EEGNetv4 model from Braindecode.
 # All the braindecode models expect the input to be of shape (batch_size, n_channels, n_times)
 # and have a test coverage about the behavior of the model.
-print(model)
+# However, you can use any pytorch model you want.
+
+# %%
+# Initialize model
+model = EEGNetv4(n_chans=129, n_outputs=1, n_times=2 * SFREQ).to(device)
 
 # Specify optimizer
 optimizer = optim.Adamax(params=model.parameters(), lr=0.002)
 
-epoch = 1
+print(model)
+
+
+# %% [markdown]
+# Finally, we can train our model. Here we define a simple training loop using pure PyTorch.
+
+# > In this example, we only train for a single epoch. Feel free to increase the number of epochs.
+
+# %% [code]
+# Create PyTorch Dataloader
+dataloader = DataLoader(windows_ds, batch_size=128, shuffle=True, num_workers=2)
+
+n_epochs = 1
 
 # Train model for 1 epoch
-for epoch in range(epoch):
+for epoch in range(n_epochs):
 
     for idx, batch in enumerate(dataloader):
         # Reset gradients
@@ -216,8 +297,8 @@ for epoch in range(epoch):
 
         # Unpack the batch
         X, y, crop_inds, infos = batch
-        X = X.to(dtype=torch.float32, device=DEVICE)
-        y = y.to(dtype=torch.float32, device=DEVICE).unsqueeze(1)
+        X = X.to(dtype=torch.float32, device=device)
+        y = y.to(dtype=torch.float32, device=device).unsqueeze(1)
 
         # Forward pass
         y_pred = model(X)
