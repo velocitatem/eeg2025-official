@@ -58,9 +58,6 @@ release_list = ["R{}".format(i) for i in range(1, 11 + 1)]
 all_datasets_list = [
     EEGChallengeDataset(
         release=release,
-        query=dict(
-            task="RestingState",
-        ),
         description_fields=[
             "subject",
             "session",
@@ -71,6 +68,7 @@ all_datasets_list = [
             "sex",
             "p_factor",
         ],
+        mini=True,
         cache_dir=cache_dir,
     )
     for release in release_list
@@ -233,4 +231,4 @@ for epoch in range(epoch):
         optimizer.step()
 
 # Finally, we can save the model for later use
-torch.save(model.state_dict(), "./example_submission_challenge_2/weights.pt")
+torch.save(model.state_dict(), "model_weights_challenge_2.pt")
